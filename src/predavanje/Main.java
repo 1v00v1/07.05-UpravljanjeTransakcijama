@@ -5,10 +5,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 
 import javax.sql.DataSource;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 
 public class Main {
@@ -16,6 +13,7 @@ public class Main {
     public static void main(String[] args) {
 
         DataSource ds = createDataSource();
+        Savepoint savepoint = null;
 
         try (Connection conn = ds.getConnection()) {
             System.out.println("Spojeni ste na bazu!");
@@ -23,6 +21,8 @@ public class Main {
                  Statement stm2 = conn.createStatement()) {
                 conn.setAutoCommit(false);
                 stm1.executeUpdate("INSERT INTO Drzava (Naziv) VALUES('Finska')");
+                savepoint = conn.setSavepoint("kontrolnaTocka1");
+
                 stm2.executeUpdate("INSERT INTO Drzava (Naziv) VALUES('Grčka')");
                 //stm1.executeUpdate("DELETE FROM Drzava WHERE IDDrzava >9");
 
@@ -30,13 +30,20 @@ public class Main {
                 System.out.println("Uspješno komitano");
 
                 ResultSet rs = stm1.executeQuery("SELECT IDDrzava,Naziv FROM Drzava");
-                while (rs.next()){
-                    System.out.printf("%d %s\n",rs.getInt("IDDrzava"), rs.getString("Naziv"));
+                while (rs.next()) {
+                    System.out.printf("%d %s\n", rs.getInt("IDDrzava"), rs.getString("Naziv"));
                 }
             } catch (SQLException e) {
-                System.err.println("Transakcija poništena!");
-                e.printStackTrace();
-                conn.rollback();
+                System.err.println("Transakcija dijelom poništena!");
+
+                try {
+                    conn.rollback(savepoint);
+                    conn.commit();
+                    System.out.println("Transakcija vračena na kontrolnu točku 1");
+
+                } catch (SQLException ee) {
+                    ee.printStackTrace();
+                }
             }
 
         } catch (SQLException e) {

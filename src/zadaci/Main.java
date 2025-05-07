@@ -44,7 +44,6 @@ public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         DataSource ds = createDataSource();
-
         try (Connection con = ds.getConnection();
              Statement st1 = con.createStatement()) {
             System.out.print("Unesite ID za povečanje: ");
